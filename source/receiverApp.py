@@ -3,6 +3,12 @@ import tqdm
 import sys
 
 
+#### GUI
+import tkinter as tk
+from tkinter import filedialog
+import tkinter.messagebox
+import os 
+
 
 # a python program to send an initial packet, then listen for packets from the ESP32
 # but requires configuring your laptop to share its internet connection (which can be a negative because it is tricky to set up depending on your OS)
@@ -51,22 +57,40 @@ def loop():
         data, addr = sock.recvfrom(2048)
 
     print("Ready to Get Data")
-  
     sock.sendto("Send Data".encode(), addr)
-    while(data!=b'Done Sending'):
-        data, addr = sock.recvfrom(2048)
-        details = data.split()
-        intro = details[0]
-        if intro ==b'FILE:':
-            filename = details[1].decode()
-            fileSize = int(details[3].decode())
-            file_extension = details[5].decode()
-            saveData(filename, file_extension, fileSize)
     print("Done.")
 
+def browser():
+    filename = filedialog.askopenfilename()
+    print(filename)
 
-if __name__ == '__main__':
-    try:
-        loop()
-    except KeyboardInterrupt:
-        sys.exit()
+
+
+root = tk.Tk()
+root.geometry('400x400')
+root.title("Branch PAL")
+root.iconbitmap(r'comms/source/eee.ico')
+
+#Menu
+menubar = tk.Menu(root)
+root.config(menu=menubar) #fixed at top, menubar must be ready to receive sub menus
+
+## sub menu
+subMenu = tk.Menu(menubar)
+menubar.add_cascade(label="File", menu=subMenu)
+subMenu.add_command(label="Open", command=browser)
+subMenu.add_command(label="Exit")
+
+
+text = tk.Label(root, text="Welcome to Branch PAL") #widget, but Label can act as container
+text.pack() #add widget
+
+#Adding image
+photo = tk.PhotoImage(file="comms\source\interaction.png")
+
+#Adding button
+btn = tk.Button(root, image=photo, command=loop)
+btn.pack(expand=tk.YES)
+
+root.mainloop()
+ 
