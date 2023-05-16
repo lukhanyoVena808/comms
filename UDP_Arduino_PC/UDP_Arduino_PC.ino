@@ -33,7 +33,7 @@ void readDataNow(){
       Udp.printf("%d", count*2);
       Udp.endPacket();
       count++;
-      delay(2000);
+      delay(500);
     }
 }
 
@@ -46,7 +46,7 @@ void readStatsNow(){
       Udp.printf("%d", count*2);
       Udp.endPacket();
       count++;
-      delay(2000);
+      delay(500);
     }
 }
 

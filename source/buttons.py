@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 from ttkthemes import themed_tk as tk
+from PIL import ImageTk, Image
 import os 
 import tkinter.messagebox
 import socket
@@ -13,6 +14,7 @@ LOCAL_UDP_IP = "192.168.1.2"
 SHARED_UDP_PORT = 4210
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Internet  # UDP
 sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
+
 
 
 def saveData(fn, ext, fileSize):
@@ -59,13 +61,11 @@ def liveData():
     statusBar['text'] ="Getting live data.."
     root.update_idletasks()
     time.sleep(1)
-    
     text_field.delete('1.0', END)
     data, addr = sock.recvfrom(2048)
     while data != b"Hello":
         data, addr = sock.recvfrom(2048)
         root.update_idletasks()
-    
     sock.sendto("Read".encode(), addr)
     done = False
     while not done:
@@ -77,8 +77,38 @@ def liveData():
                 text_field.insert(END, data.decode(encoding="utf-8", errors="ignore").rstrip(".\\.x\\.?\\9\\.(.\\.).") )
                 text_field.insert(END,"\n")
         root.update_idletasks()
-           
-    statusBar['text'] = "Done."     
+    statusBar['text'] = "Done."  
+
+
+#Thread for getting live data
+def threadingStats():
+    # Call work function
+    t1=Thread(target=StatsData)
+    t1.start()   
+
+#getting the Live data
+def StatsData():
+    # Handshake
+    statusBar['text'] ="Getting ESP32 Stats.."
+    root.update_idletasks()
+    time.sleep(1)
+    text_field.delete('1.0', END)
+    data, addr = sock.recvfrom(2048)
+    while data != b"Hello":
+        data, addr = sock.recvfrom(2048)
+        root.update_idletasks()
+    sock.sendto("Stats".encode(), addr)
+    done = False
+    while not done:
+        data, addr = sock.recvfrom(2048)
+        if data == b"Done" :
+            done = True
+        else:
+            if data !=b"Hello":
+                text_field.insert(END, data.decode(encoding="utf-8", errors="ignore").rstrip(".\\.x\\.?\\9\\.(.\\.).") )
+                text_field.insert(END,"\n")
+        root.update_idletasks()
+    statusBar['text'] = "Done."    
 
 #Thread for saving data
 def threadingLoop():
@@ -90,6 +120,7 @@ def threadingLoop():
 def loop():
     # Handshake
     statusBar['text'] ="Getting Saved Data.."
+    text_field.delete('1.0', END)
     root.update_idletasks()
     time.sleep(1)
 
@@ -138,16 +169,23 @@ def browser():
             txt_file.close()
             text_field.delete('1.0', END)
             text_field.insert(END, readInfo)
-        if extension == "jpg":
-            myPhoto = PhotoImage(file=str(filename))
+        if extension in ["jpg", "png", "jpeg"]:
+            global myPhoto
+            myPhoto = ImageTk.PhotoImage(Image.open(filename)) 
             text_field.delete('1.0', END)
-            # text_field.image_create(END, image=myPhoto)
-            text_field.window_create(END, window = Label(text_field, image = myPhoto))
+            text_field.image_create(END, image=myPhoto)
+            # text_field.window_create(END, window = Label(text_field, image = myPhoto))
 
 def save_file():
-        filename = filedialog.askopenfilename(initialdir="./",title = "Save File as",filetypes = [("Image Files",["*.jpg", "*png", "*jpeg"]),("Text Documents","*.txt")])
-        my_File = open(filename, "w") 
-        my_File.write(text_field.get(1.0, END))
+        filename = filedialog.asksaveasfilename(initialdir="./",title = "Save File as",filetypes = [("Image Files",["*.jpg", "*png", "*jpeg"]),("Text Documents","*.txt")])
+        extension= filename[filename.index(".")+1:]
+        if extension == "txt":
+            my_File = open(filename, "w") 
+            my_File.write(text_field.get(1.0, END))
+        else:
+            my_File = open(filename, "wb") 
+            my_File.write((text_field.image_cget(1.0)).encode()
+                          )
         my_File.close()
         statusBar['text'] = "File Saved as: "+filename
 
@@ -158,6 +196,8 @@ root.set_theme("breeze")
 # root.geometry('400x400')
 root.title("Branch PAL")
 root.iconbitmap(r'comms/source/eee.ico')
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(0, weight=1)
 
 ## sub menu
 #Menu
@@ -182,8 +222,20 @@ photo = PhotoImage(file=r"comms\source\interaction.png")
 photoLabel = ttk.Label(root, image=photo)
 photoLabel.pack()
 myProgress = ttk.Progressbar(root, orient=HORIZONTAL, )
-text_field = Text(root, width=20, height=25)
-text_field.pack(pady=10, fill=X, padx=10)
+
+TextFrame = Frame(root)
+TextFrame.pack(padx=10, pady=10, expand=True, fill=X, anchor=CENTER )
+text_field = Text(TextFrame)
+myScrollbar = Scrollbar(TextFrame, orient="vertical", command=text_field.yview)
+myScrollbar.pack(side=RIGHT, fill=Y)
+text_field.configure(yscrollcommand=myScrollbar.set)
+text_field.pack(expand=True, fill=X)
+
+TextFrame2 = Frame(root)
+TextFrame2.pack(padx=50, fill=X)
+myScrollbar2 = Scrollbar(TextFrame2, orient="horizontal", command=text_field.xview)
+text_field.configure(xscrollcommand=myScrollbar2.set)
+myScrollbar2.pack(side=BOTTOM, fill=X)
 
 midFrame = Frame(root)
 midFrame.pack(padx=10, pady=5)
@@ -193,19 +245,19 @@ btn = ttk.Button(midFrame , text="Get Saved Data",command=threadingLoop)
 btn.grid(row=0, column=0, padx=10 )
 btn = ttk.Button(midFrame , text="Read Now", command=threadingLive)
 btn.grid(row=0, column=1, padx=10)
-btn = ttk.Button(midFrame , text="Get ESP Stats")
+btn = ttk.Button(midFrame , text="Get ESP Stats", command=threadingStats)
 btn.grid(row=0, column=2, padx=10)
 
 #Bar Frame
 progress_Frame = Frame(root)
-progress_Frame.pack(fill=X, expand=True)
+progress_Frame.pack(fill=X, expand=True, padx=10, anchor=CENTER)
 
-myProgress = ttk.Progressbar(progress_Frame, orient=HORIZONTAL, length=200, mode="determinate")
+myProgress = ttk.Progressbar(progress_Frame, orient=HORIZONTAL, length=600, mode="determinate")
 myProgress.grid(row=0, column=0, sticky='nsew')
 blankCover = Frame(progress_Frame)
 blankCover.grid(row=0, column=0, sticky='nsew')
 
-statusBar = ttk.Label(root, text="Hello World!", relief="sunken",anchor=W, font="times 15 italic")
+statusBar = ttk.Label(root, text="Hello World!", relief="sunken",anchor=W, font="times 18 italic")
 statusBar.pack(side=BOTTOM, fill=X)
 
 #pack manager arranges items in vertical order of appearance
