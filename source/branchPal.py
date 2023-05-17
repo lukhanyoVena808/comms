@@ -13,19 +13,17 @@ from threading import Thread
 LOCAL_UDP_IP = "192.168.1.2"
 SHARED_UDP_PORT = 4210
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Internet  # UDP
-sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
+# sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
 
 
 # // -------------------------------------------- // ------------------------------------------------------- // -------------------------------------------
 #saving data to local directory
 def saveData(fn, ext, fileSize):
     text_field.insert(END, ("\nGetting: %s" % fn))
-
     myFile = None
     file_b =""
     if ext == "txt":
         myFile = open(fn, "w")
-
     else:
         myFile = open(fn, "wb")
         file_b = b""
@@ -44,7 +42,6 @@ def saveData(fn, ext, fileSize):
                 file_b += data.rstrip()
         myProgress['value'] +=barIncrement
         root.update_idletasks()
-
     myFile.write(file_b) 
     myFile.close()
     myProgress.stop()
@@ -163,7 +160,6 @@ def browser():
         fname =  os.path.basename(filename)
         statusBar['text'] ="File Opened: "+ fname
         extension= filename[filename.index(".")+1:]
-
         if extension == "txt":
             txt_file = open(filename,"r")
             readInfo = txt_file.read()
