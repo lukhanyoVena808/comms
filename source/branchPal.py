@@ -16,7 +16,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Internet  # UDP
 sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
 
 
-
+# // -------------------------------------------- // ------------------------------------------------------- // -------------------------------------------
+#saving data to local directory
 def saveData(fn, ext, fileSize):
     text_field.insert(END, ("\nGetting: %s" % fn))
 
@@ -157,7 +158,7 @@ def browser():
     global filename 
     global text_field
     global extension
-    filename = filedialog.askopenfilename(initialdir="./",title = "Select your File",filetypes = [("Image Files",["*.jpg", "*png", "*jpeg"]),("Text Documents","*.txt")])
+    filename = filedialog.askopenfilename(initialdir="./",  defaultextension=".txt",title = "Select your File",filetypes = [("Image Files",["*.jpg", "*png", "*jpeg"]),("Text Documents","*.txt")])
     if filename:
         fname =  os.path.basename(filename)
         statusBar['text'] ="File Opened: "+ fname
@@ -177,98 +178,99 @@ def browser():
             # text_field.window_create(END, window = Label(text_field, image = myPhoto))
 
 def save_file():
-        filename = filedialog.asksaveasfilename(initialdir="./",title = "Save File as",filetypes = [("Image Files",["*.jpg", "*png", "*jpeg"]),("Text Documents","*.txt")])
-        extension= filename[filename.index(".")+1:]
-        if extension == "txt":
-            my_File = open(filename, "w") 
-            my_File.write(text_field.get(1.0, END))
-        else:
-            my_File = open(filename, "wb") 
-            my_File.write((text_field.image_cget(1.0)).encode()
-                          )
-        my_File.close()
-        statusBar['text'] = "File Saved as: "+filename
+        filename = filedialog.asksaveasfile(mode='w',initialdir="./", defaultextension=".txt",title = "Save File as",filetypes = [("Text Documents","*.txt")])
+        fn = filename.name[filename.name.rindex("/")+1:]
+        filename.write(text_field.get(1.0, END))
+        filename.close()
+        statusBar['text'] = "File Saved as: "+fn
 
-# root = Tk()
+def on_closing():
+    mbox = tkinter.messagebox.askyesnocancel("Warning!","Do you want to exit now?")
+    if mbox:
+        root.destroy()
+    else:
+        pass
+
+# // -------------------------------------------- // ------------------------------------------------------- // -------------------------------------------
+
+# Setting up main window
 root = tk.ThemedTk()
-root.get_themes()
-root.set_theme("breeze")
-# root.geometry('400x400')
+style = ttk.Style(root)
+root.tk.call('source', 'comms/source/Azure-ttk-theme/azure3/azure.tcl')
+style.theme_use('azure')
+style.configure("Accentbutton", foreground='white')
+style.configure("Togglebutton", foreground='white')
 root.title("Branch PAL")
-root.iconbitmap(r'comms/source/eee.ico')
+root.iconbitmap(r'comms/icons/eee.ico')
 root.grid_columnconfigure(0, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
-## sub menu
-#Menu
-menubar = Menu(root)
-root.config(menu=menubar) #fixed at top, menubar must be ready to receive sub menus
-subMenu = Menu(menubar, tearoff=0)
+# Setting up menu and subMenus
+open_icon = PhotoImage(file="comms/icons/open.png")
+save_as_icon = PhotoImage(file="comms/icons/save_as.png")
+exit_icon = PhotoImage(file="comms/icons/exit.png")
+ab = PhotoImage(file="comms/icons/find.png")
+menubar = Menu(root, font="times 18 italic")
+root.config(menu=menubar,) #fixed at top, menubar must be ready to receive sub menus
+subMenu = Menu(menubar, tearoff=False)
 menubar.add_cascade(label="File", menu=subMenu)
-subMenu.add_command(label="Open", command=browser)
-subMenu.add_command(label="Save File", command=save_file)
-subMenu.add_command(label="Exit", command=root.destroy)
-
+subMenu.add_command(label="Open", command=browser, image=open_icon, compound=LEFT)
+subMenu.add_command(label="Save txt File as", command=save_file, image=save_as_icon, compound=LEFT)
+subMenu.add_command(label="Exit", command=on_closing, image=exit_icon, compound=LEFT)
 subMenu2 = Menu(menubar, tearoff=0)
 menubar.add_cascade(label="Help", menu=subMenu2)
-subMenu2.add_command(label="About Us", command=about_us)
+subMenu2.add_command(label="About Us", command=about_us, compound=LEFT, image=ab)
 
-
-text = ttk.Label(root, text="Welcome to Branch PAL") #widget, but Label can act as container
+# Setting up App Heading
+text = ttk.Label(root, text="Welcome to Branch PAL", font="times 12") #widget, but Label can act as container
 text.pack(pady=10) #add widget
 
 #Adding image
-photo = PhotoImage(file=r"comms\source\interaction.png")
+photo = PhotoImage(file=r"comms\images\interaction.png")
 photoLabel = ttk.Label(root, image=photo)
 photoLabel.pack()
-myProgress = ttk.Progressbar(root, orient=HORIZONTAL, )
 
-TextFrame = Frame(root)
-TextFrame.pack(padx=10, pady=10, expand=True, fill=X, anchor=CENTER )
+# Setting up Text Field for viewing and editting
+TextFrame = ttk.Frame(root)
+TextFrame.pack(padx=10, expand=True, fill=X, anchor=CENTER )
 text_field = Text(TextFrame)
 myScrollbar = Scrollbar(TextFrame, orient="vertical", command=text_field.yview)
 myScrollbar.pack(side=RIGHT, fill=Y)
 text_field.configure(yscrollcommand=myScrollbar.set)
 text_field.pack(expand=True, fill=X)
-
-TextFrame2 = Frame(root)
+TextFrame2 = ttk.Frame(root)
 TextFrame2.pack(padx=50, fill=X)
-myScrollbar2 = Scrollbar(TextFrame2, orient="horizontal", command=text_field.xview)
+myScrollbar2 = Scrollbar(TextFrame2, orient="horizontal", command=text_field.xview,)
 text_field.configure(xscrollcommand=myScrollbar2.set)
 myScrollbar2.pack(side=BOTTOM, fill=X)
 
+# Setting up Buttons
 midFrame = Frame(root)
-midFrame.pack(padx=10, pady=5)
+midFrame.pack(padx=10, pady=10, expand=True)
 
 #Adding button
-btn = ttk.Button(midFrame , text="Get Saved Data",command=threadingLoop)
+btn = ttk.Button(midFrame , text="Get Saved Data",command=threadingLoop, style="Accentbutton")
 btn.grid(row=0, column=0, padx=10 )
-btn = ttk.Button(midFrame , text="Read Now", command=threadingLive)
+btn = ttk.Button(midFrame , text="Read Now", command=threadingLive, style="Accentbutton")
 btn.grid(row=0, column=1, padx=10)
-btn = ttk.Button(midFrame , text="Get ESP Stats", command=threadingStats)
+btn = ttk.Button(midFrame , text="Get ESP Stats", command=threadingStats, style="Accentbutton")
 btn.grid(row=0, column=2, padx=10)
 
-#Bar Frame
+# Setting up Progress Bar
 progress_Frame = Frame(root)
-progress_Frame.pack(fill=X, expand=True, padx=10, anchor=CENTER)
-
-myProgress = ttk.Progressbar(progress_Frame, orient=HORIZONTAL, length=600, mode="determinate")
-myProgress.grid(row=0, column=0, sticky='nsew')
+progress_Frame.pack( expand=True, padx=10, anchor=CENTER)
+myProgress = ttk.Progressbar(progress_Frame, orient=HORIZONTAL, length=450, mode="determinate", )
+myProgress.grid(row=0, column=1, sticky='nsew')
 blankCover = Frame(progress_Frame)
-blankCover.grid(row=0, column=0, sticky='nsew')
+blankCover.grid(row=0, column=1, sticky='nsew')
 
-statusBar = ttk.Label(root, text="Hello World!", relief="sunken",anchor=W, font="times 18 italic")
+# Setting up StatusBar
+statusBar = ttk.Label(root, text="Hello World!", relief="sunken",anchor=W, font="times 18 italic", )
 statusBar.pack(side=BOTTOM, fill=X)
 
-#pack manager arranges items in vertical order of appearance
-def on_closing():
-    # tk.messagebox.showinfo("Message Box", "Hi there" )
-    root.destroy()
-
-#overriding
+#overriding Exit protocol
 root.protocol('WM_DELETE_WINDOW', on_closing)
-
 root.mainloop()
- 
+    
 
 
