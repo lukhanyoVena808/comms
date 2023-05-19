@@ -8,17 +8,19 @@ import os
 import tkinter.messagebox
 import socket
 import time
+import random
 from threading import Thread
 
 LOCAL_UDP_IP = "192.168.1.2"
 SHARED_UDP_PORT = 4210
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Internet  # UDP
-# sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
+sock.bind((LOCAL_UDP_IP, SHARED_UDP_PORT))
 
 
 # // -------------------------------------------- // ------------------------------------------------------- // -------------------------------------------
 #saving data to local directory
 def saveData(fn, ext, fileSize):
+    start_time = time.time()
     text_field.insert(END, ("\nGetting: %s" % fn))
     myFile = None
     file_b =""
@@ -42,7 +44,8 @@ def saveData(fn, ext, fileSize):
                 file_b += data.rstrip()
         myProgress['value'] +=barIncrement
         root.update_idletasks()
-    myFile.write(file_b) 
+    myFile.write(file_b)
+    print("--- %s seconds --- file size:%d bytes" % ((time.time() - start_time), fileSize))
     myFile.close()
     myProgress.stop()
     myProgress.lower()
@@ -72,7 +75,11 @@ def liveData():
             done = True
         else:
             if data !=b"Hello":
-                text_field.insert(END, data.decode(encoding="utf-8", errors="ignore").rstrip(".\\.x\\.?\\9\\.(.\\.).") )
+                live =  (data.decode(encoding="utf-8", errors="ignore").rstrip(".\\.x\\.?\\9\\.(.\\.)."))
+                # num = float(live[live.rindex(":")+1:])
+                # in_line = num + random.uniform(80, 82.5)
+                # showing = "Weight:%f" % (in_line)
+                text_field.insert(END, live)
                 text_field.insert(END,"\n")
         root.update_idletasks()
     statusBar['text'] = "Done."  

@@ -8,6 +8,8 @@
 #include <WiFiUdp.h>
 #include "esp_sleep.h"
 #include <Adafruit_INA219.h>
+#include "FS.h"
+#include "SD_MMC.h"
 
 
 
@@ -37,7 +39,7 @@ HX711 scale;
 // the IP of the machine to which you send msgs - this should be the correct IP in most cases (see note in python code)
 #define CONSOLE_IP "192.168.1.2"
 #define CONSOLE_PORT 4210
-const char* ssid = "ESP32 Dev Board 2";  // ESP Wifi Host
+const char* ssid = "ESP32 Dev Board";  // ESP Wifi Host
 const char* password = "12345@678";
 #define CHUNK_LENGTH 1048
 // Wifi Connection
@@ -46,6 +48,81 @@ IPAddress local_ip(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 WiFiServer server(80);
+
+
+// Send Data to PC
+void sendPackets(File file , size_t buffLen, size_t chunk){
+   char buffer[chunk];
+    size_t blen = sizeof(buffer);
+    size_t rest = buffLen % blen;
+    uint8_t i = 0;
+    for (i=0; i <  buffLen/blen; ++i) {
+        file.seek(i*blen);
+        int rec = file.readBytes(buffer, chunk);
+        Udp.beginPacket(CONSOLE_IP, CONSOLE_PORT);
+        Udp.write((uint8_t *)buffer, chunk);
+        Udp.endPacket();
+        delay(100);
+      }
+
+      if (rest) {
+        file.seek(i*blen);
+        int rec = file.readBytes(buffer, rest);
+        Udp.beginPacket(CONSOLE_IP, CONSOLE_PORT);
+        Udp.write((uint8_t *)buffer, rest);
+        Udp.endPacket();
+      }
+}
+
+
+// Open Directory in SD CARD, read and send data 
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+    Serial.printf("Listing directory: %s\n", dirname);
+    
+    File root = fs.open(dirname);  
+    if(!root){
+        Serial.println("Failed to open directory");
+        return;
+    }
+    if(!root.isDirectory()){
+        Serial.println("Not a directory");
+        return;
+    }
+
+    File file = root.openNextFile();
+    while(file){
+        if(file.isDirectory()){
+            if(levels){
+                listDir(fs, file.path(), levels -1);
+            }
+        } else {
+              //  ------------------------------------
+              size_t buffLen = file.available();
+              String name =  String(file.name());
+              String file_extension = name.substring(name.lastIndexOf(".")+1);
+            if (file_extension == "txt" || file_extension == "jpg"){
+                Serial.println(name);
+                // details about file before sending file bytes
+                Udp.beginPacket(CONSOLE_IP, CONSOLE_PORT);
+                Udp.printf(" FILE: ");
+                Udp.printf(file.name());
+                Udp.printf(" SIZE: ");
+                Udp.printf("%d", buffLen);
+                Udp.printf(" Ext: ");
+                Udp.printf("%s",file_extension);
+                Udp.endPacket();
+                // sending data 
+                sendPackets(file, buffLen, CHUNK_LENGTH);
+                // end tag
+                delay(1000);
+                Udp.beginPacket(CONSOLE_IP, CONSOLE_PORT);
+                Udp.print("<NEXT>");
+                Udp.endPacket();
+            }
+        }
+        file = root.openNextFile();
+    }
+}
 
 void readStatsNow(){
   //read ten values
@@ -127,7 +204,7 @@ void setup() {
   pinMode(DHTPin, INPUT);
   dht.begin();
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  scale.set_scale(761.0316456);
+  scale.set_scale(-761.0316456);
                    // this value is obtained by calibrating the scale with known weights; see the README for details
   scale.tare(); 
 
@@ -141,6 +218,11 @@ void setup() {
 
    // Configure the INA219 settings
   ina219.setCalibration_16V_400mA();
+
+  if(!SD_MMC.begin()){
+      Serial.print("Card Mount Failed");
+  }
+  Serial.println("Start Program");
 
 }
 
@@ -166,6 +248,18 @@ void loop() {
         size_t rc = Udp.available();
         int rcv = Udp.read(incoming, rc);
         String line = String(incoming);
+
+    
+          // If cient is requesting saved data
+    if(line.startsWith("Send")){
+              Serial.println("Sending");
+              listDir(SD_MMC, "/", 0);
+              delay(1000);
+              Udp.beginPacket(CONSOLE_IP, CONSOLE_PORT);
+              Udp.printf("Done Sending");
+              Udp.endPacket();
+              Serial.print("Done Sending");
+            }
         
     if (line.startsWith("Stats")){
           Serial.println("Sending");
@@ -177,7 +271,7 @@ void loop() {
           Serial.print("Done Sending");
         }
 
-  //If cient is requesting live data
+  // If cient is requesting live data
   if(line.startsWith("Read")){
       Serial.println("Sending");
       readDataNow();

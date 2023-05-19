@@ -23,6 +23,7 @@ IPAddress subnet(255, 255, 255, 0);
 size_t bitToggleNow = 0;
 size_t bitToggleStats = 0;
 boolean connected = false;
+int count = 0;
 
 // Read Data from sensors and scale
 void readDataNow(){
@@ -31,8 +32,8 @@ void readDataNow(){
       Udp.beginPacket(CONSOLE_IP, CONSOLE_PORT);
       Udp.printf(" Weight: ");
       Udp.printf("%d ", count);
-      Udp.printf(" Size: ");
-      Udp.printf("%d", count*2);
+      Udp.printf(" Temperature: ");
+      Udp.printf("%d C", count*2);
       Udp.endPacket();
       count++;
       delay(1000);
@@ -47,6 +48,10 @@ void readStatsNow(){
       Udp.printf("%d% ", count);
       Udp.printf(" Humidity: ");
       Udp.printf("%d", count*2);
+      Udp.printf(" Temperature: ");
+      Udp.printf("%d C", count*2);
+      Udp.printf(" Power: ");
+      Udp.printf("%d mW", count*2);
       Udp.endPacket();
       count++;
       delay(1000);
@@ -81,7 +86,6 @@ void sendPackets(File file , size_t buffLen, size_t chunk){
 // Open Directory in SD CARD, read and send data 
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     Serial.printf("Listing directory: %s\n", dirname);
-    
     File root = fs.open(dirname);  
     if(!root){
         Serial.println("Failed to open directory");
@@ -91,7 +95,6 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
         Serial.println("Not a directory");
         return;
     }
-
     File file = root.openNextFile();
     while(file){
         if(file.isDirectory()){
