@@ -9,7 +9,7 @@
 // the IP of the machine to which you send msgs - this should be the correct IP in most cases (see note in python code)
 #define CONSOLE_IP "192.168.1.2"
 #define CONSOLE_PORT 4210
-const char* ssid = "ESP32 Dev Board";  // ESP Wifi Host
+const char* ssid = "ESP32 Dev Board-WF";  // ESP Wifi Host
 const char* password = "12345@678";
 
 #define GPIO_DEEP_SLEEP_DURATION 2     // sleep x seconds and then wake up
