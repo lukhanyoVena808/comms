@@ -199,20 +199,20 @@ def on_closing():
 # Setting up main window
 root = tk.ThemedTk()
 style = ttk.Style(root)
-root.tk.call('source', 'comms/source/Azure-ttk-theme/azure3/azure.tcl')
-style.theme_use('azure')
+root.tk.call('source', 'Azure-ttk-theme/azure3/azure.tcl')
+style.theme_use('azure') 
 style.configure("Accentbutton", foreground='white')
 style.configure("Togglebutton", foreground='white')
 root.title("Branch PAL")
-root.iconbitmap(r'comms/icons/eee.ico')
+root.iconbitmap(r'./icons/eee.ico')
 root.grid_columnconfigure(0, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
 # Setting up menu and subMenus
-open_icon = PhotoImage(file="comms/icons/open.png")
-save_as_icon = PhotoImage(file="comms/icons/save_as.png")
-exit_icon = PhotoImage(file="comms/icons/exit.png")
-ab = PhotoImage(file="comms/icons/find.png")
+open_icon = PhotoImage(file="icons/open.png")
+save_as_icon = PhotoImage(file="icons/save_as.png")
+exit_icon = PhotoImage(file="icons/exit.png")
+ab = PhotoImage(file="icons/find.png")
 menubar = Menu(root, font="times 18 italic")
 root.config(menu=menubar,) #fixed at top, menubar must be ready to receive sub menus
 subMenu = Menu(menubar, tearoff=False)
@@ -229,7 +229,7 @@ text = ttk.Label(root, text="Welcome to Branch PAL", font="times 12") #widget, b
 text.pack(pady=10) #add widget
 
 #Adding image
-photo = PhotoImage(file=r"comms\images\interaction.png")
+photo = PhotoImage(file=r"images\interaction.png")
 photoLabel = ttk.Label(root, image=photo)
 photoLabel.pack()
 
